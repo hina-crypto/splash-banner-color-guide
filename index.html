@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>앱스플래시 배경색 선택기</title>
+  <link rel="stylesheet" as="style" crossorigin
+    href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+  <style>
+    /* ── CDS Design Tokens ── */
+    :root {
+      --screen-01:       #FFFFFF;
+      --screen-02:       #F4F7F9;
+      --normal:          #0C1120;
+      --paragraph:       #222B3E;
+      --description:     #44546F;
+      --hint:            #728094;
+      --border-gray-02:  #E8EDF2;
+      --border-gray-03:  #E2E8ED;
+      --border-blue-01:  #2D91FF;
+      --success-regular: #63CE05;
+      --success-air:     #F6FFE6;
+      --success-medium:  #4CA607;
+      --danger-regular:  #F74F2A;
+      --danger-air:      #FFEFEE;
+      --information-air: #F3FAFF;
+      --information-reg: #2D91FF;
+      --radius-200: 8px;
+      --radius-300: 12px;
+      --radius-400: 16px;
+      --radius-500: 20px;
+      --radius-600: 24px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--screen-02);
+      color: var(--normal);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--screen-01);
+      border-radius: var(--radius-600);
+      border: 1px solid var(--border-gray-02);
+      padding: 32px;
+      width: 100%;
+      max-width: 740px;
+    }
+
+    .page-title {
+      font-size: 19px;
+      font-weight: 700;
+      line-height: 26px;
+      color: var(--normal);
+      margin-bottom: 24px;
+    }
+
+    /* ── Two-column layout ── */
+    .layout {
+      display: flex;
+      gap: 32px;
+      align-items: flex-start;
+    }
+
+    /* ── Preview column ── */
+    .preview-col { flex-shrink: 0; }
+
+    .col-label {
+      font-size: 13px;
+      font-weight: 400;
+      line-height: 20px;
+      color: var(--description);
+      margin-bottom: 8px;
+    }
+
+    .preview-screen {
+      width: 270px;
+      height: 585px;
+      border-radius: var(--radius-500);
+      background: #FFFFFF;
+      border: 1px solid var(--border-gray-03);
+      position: relative;
+      overflow: hidden;
+      transition: background-color 0.15s ease;
+    }
+
+    .preview-logo {
+      position: absolute;
+      top: 125px;       /* 167px × 0.75 */
+      left: 50%;
+      transform: translateX(-50%);
+      width: 87.75px;   /* 117px × 0.75 */
+      height: 48px;     /* 64px  × 0.75 */
+      object-fit: contain;
+      display: block;
+    }
+
+    /* Fallback when logo file is missing */
+    .preview-logo::after {
+      content: '';
+      display: none;
+    }
+
+    .preview-divider {
+      position: absolute;
+      top: 234px;       /* 125 + 48 + 61 */
+      left: 50%;
+      transform: translateX(-50%);
+      width: 33px;      /* 44px × 0.75 */
+      height: 1.5px;
+      background: rgba(255, 255, 255, 0.6);
+    }
+
+    .unavailable-overlay {
+      display: none;
+      position: absolute;
+      inset: 0;
+      border-radius: var(--radius-500);
+      background: rgba(0, 0, 0, 0.42);
+    }
+
+    /* ── Controls column ── */
+    .controls-col {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    /* ── Status card ── */
+    .status-card {
+      border-radius: var(--radius-400);
+      padding: 14px 16px;
+      border: 1px solid transparent;
+      transition: background 0.2s ease, border-color 0.2s ease;
+      min-height: 96px; /* 3줄 고정: padding(28) + row1(22) + gap+row2(23) + gap+row3(23) */
+    }
+
+    .status-card.state-placeholder {
+      background: var(--screen-02);
+      border-color: var(--border-gray-02);
+    }
+
+    .status-card.state-available {
+      background: var(--success-air);
+      border-color: #DFF5BF;
+    }
+
+    .status-card.state-unavailable {
+      background: var(--danger-air);
+      border-color: #FFD0CB;
+    }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-icon {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 700;
+      line-height: 1;
+      color: #fff;
+    }
+
+    .status-icon.icon-ok   { background: var(--success-medium); }
+    .status-icon.icon-warn { background: var(--danger-regular); }
+
+    .status-text {
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 22px;
+    }
+
+    .status-text.state-placeholder {
+      font-size: 13px;
+      font-weight: 400;
+      line-height: 20px;
+      color: var(--hint);
+    }
+
+    .status-text.state-available   { color: var(--success-medium); }
+    .status-text.state-unavailable { color: var(--danger-regular); }
+
+    .status-sub {
+      font-size: 13px;
+      font-weight: 400;
+      line-height: 20px;
+      color: var(--description);
+      margin-top: 3px;
+    }
+
+    /* ── Divider ── */
+    .row-divider {
+      height: 1px;
+      background: var(--border-gray-02);
+      margin: 20px 0;
+    }
+
+    /* ── Picker section ── */
+    .value-inputs {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* ── Inline canvas picker ── */
+    .inline-picker {
+      display: none;
+      margin-top: 16px;
+      border: 1px solid var(--border-gray-02);
+      border-radius: var(--radius-400);
+      overflow: hidden;
+    }
+
+    .inline-picker.visible { display: block; }
+
+    #sbCanvas {
+      display: block;
+      width: 100%;
+      height: 180px;
+      cursor: crosshair;
+    }
+
+    .hue-wrap {
+      padding: 10px 14px;
+      background: var(--screen-01);
+      border-top: 1px solid var(--border-gray-02);
+    }
+
+    #hueCanvas {
+      display: block;
+      width: 100%;
+      height: 14px;
+      border-radius: 7px;
+      cursor: pointer;
+    }
+
+    .input-group-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .group-label {
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 14px;
+      color: var(--hint);
+      width: 28px;
+      flex-shrink: 0;
+      letter-spacing: 0.3px;
+    }
+
+    .channel-field {
+      flex: 1;
+      display: flex;
+      align-items: stretch;
+      border: 1px solid var(--border-gray-02);
+      border-radius: var(--radius-200);
+      overflow: hidden;
+      transition: border-color 0.15s;
+      background: var(--screen-01);
+    }
+
+    .channel-field:focus-within {
+      border-color: var(--border-blue-01);
+      border-width: 2px;
+    }
+
+    .channel-key {
+      padding: 0 6px;
+      background: var(--screen-02);
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 1;
+      color: var(--description);
+      display: flex;
+      align-items: center;
+      border-right: 1px solid var(--border-gray-02);
+      flex-shrink: 0;
+      user-select: none;
+    }
+
+    .channel-input {
+      flex: 1;
+      min-width: 0;
+      height: 32px;
+      border: none;
+      outline: none;
+      padding: 0 6px;
+      font-family: 'Pretendard', sans-serif;
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--normal);
+      background: transparent;
+      text-align: center;
+      -moz-appearance: textfield;
+    }
+
+    .channel-input::-webkit-inner-spin-button,
+    .channel-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+    .picker-title {
+      font-size: 17px;
+      font-weight: 600;
+      line-height: 22px;
+      color: var(--normal);
+      margin-bottom: 12px;
+    }
+
+    .picker-caption {
+      font-size: 12px;
+      font-weight: 400;
+      line-height: 16px;
+      color: var(--hint);
+      margin-top: 4px;
+      padding-left: 34px; /* group-label(28px) + gap(6px) */
+    }
+
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1 class="page-title">앱스플래시 배경색 선택기</h1>
+
+    <div class="layout">
+
+      <!-- ── 미리보기 ── -->
+      <div class="preview-col">
+        <div class="preview-screen" id="previewScreen">
+          <img class="preview-logo" id="previewLogo" src="logo-default.png" alt="Cashnote 로고">
+          <div class="preview-divider"></div>
+          <div class="unavailable-overlay" id="unavailableOverlay"></div>
+        </div>
+      </div>
+
+      <!-- ── 컨트롤 ── -->
+      <div class="controls-col">
+
+        <!-- 상태 카드 -->
+        <div class="status-card state-placeholder" id="statusCard">
+          <div class="status-row" id="statusRow">
+            <span class="status-text state-placeholder" id="statusText">
+              화면을 클릭해 색상을 선택하세요
+            </span>
+          </div>
+          <p class="status-sub" id="statusSub">&nbsp;</p>
+        </div>
+
+        <div class="row-divider"></div>
+
+        <!-- 컬러 피커 -->
+        <p class="picker-title">배경색 선택</p>
+        <div class="value-inputs">
+          <!-- RGB -->
+          <div class="input-group-row">
+            <span class="group-label">RGB</span>
+            <div class="channel-field">
+              <span class="channel-key">R</span>
+              <input class="channel-input" id="inR" type="number" min="0" max="255" value="255">
+            </div>
+            <div class="channel-field">
+              <span class="channel-key">G</span>
+              <input class="channel-input" id="inG" type="number" min="0" max="255" value="255">
+            </div>
+            <div class="channel-field">
+              <span class="channel-key">B</span>
+              <input class="channel-input" id="inB" type="number" min="0" max="255" value="255">
+            </div>
+          </div>
+
+          <!-- HSB -->
+          <div class="input-group-row">
+            <span class="group-label">HSB</span>
+            <div class="channel-field">
+              <span class="channel-key">H</span>
+              <input class="channel-input" id="inH" type="number" min="0" max="360" value="0">
+            </div>
+            <div class="channel-field">
+              <span class="channel-key">S</span>
+              <input class="channel-input" id="inS" type="number" min="0" max="100" value="0">
+            </div>
+            <div class="channel-field">
+              <span class="channel-key">B</span>
+              <input class="channel-input" id="inBr" type="number" min="0" max="100" value="100">
+            </div>
+          </div>
+
+          <!-- HEX -->
+          <div class="input-group-row">
+            <span class="group-label">HEX</span>
+            <div class="channel-field" style="flex:1;">
+              <span class="channel-key">#</span>
+              <input class="channel-input" id="inHex" type="text" maxlength="6"
+                placeholder="RRGGBB" autocomplete="off" spellcheck="false"
+                style="text-transform:uppercase;letter-spacing:0.5px;text-align:left;">
+            </div>
+          </div>
+
+          <p class="picker-caption">소재 전달 시 HEX 코드를 전달해주세요</p>
+        </div>
+
+        <!-- 인라인 컬러 피커 (미리보기 클릭 시 노출) -->
+        <div class="inline-picker" id="inlinePicker">
+          <canvas id="sbCanvas"></canvas>
+          <div class="hue-wrap">
+            <canvas id="hueCanvas"></canvas>
+          </div>
+        </div>
+
+      </div><!-- /controls-col -->
+    </div><!-- /layout -->
+  </div><!-- /card -->
+
+  <script>
+    const previewScreen      = document.getElementById('previewScreen');
+    const previewLogo        = document.getElementById('previewLogo');
+    const unavailableOverlay = document.getElementById('unavailableOverlay');
+    const statusCard         = document.getElementById('statusCard');
+    const statusRow          = document.getElementById('statusRow');
+    const statusSub          = document.getElementById('statusSub');
+    const inHex  = document.getElementById('inHex');
+    const inR    = document.getElementById('inR');
+    const inG    = document.getElementById('inG');
+    const inB    = document.getElementById('inB');
+    const inH    = document.getElementById('inH');
+    const inS    = document.getElementById('inS');
+    const inBr   = document.getElementById('inBr');
+    const inlinePicker = document.getElementById('inlinePicker');
+    const sbCanvas     = document.getElementById('sbCanvas');
+    const hueCanvas    = document.getElementById('hueCanvas');
+
+    /* ── Colour math ── */
+    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, Math.round(v))); }
+
+    function toLinear(c) {
+      c /= 255;
+      return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    }
+    function relativeLuminance(r, g, b) {
+      return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+    }
+    const L_NAVY = relativeLuminance(25, 45, 130); // #192D82
+
+    function rgbToHsb(r, g, b) {
+      r /= 255; g /= 255; b /= 255;
+      const max = Math.max(r, g, b), min = Math.min(r, g, b), diff = max - min;
+      let h = 0;
+      const s = max === 0 ? 0 : diff / max;
+      if (diff !== 0) {
+        if      (max === r) h = ((g - b) / diff) % 6;
+        else if (max === g) h = (b - r) / diff + 2;
+        else                h = (r - g) / diff + 4;
+        h = Math.round(h * 60);
+        if (h < 0) h += 360;
+      }
+      return { h, s: Math.round(s * 100), b: Math.round(max * 100) };
+    }
+
+    function hsbToRgb(h, s, b) {
+      s /= 100; b /= 100;
+      const k = n => (n + h / 60) % 6;
+      const f = n => b * (1 - s * Math.max(0, Math.min(k(n), 4 - k(n), 1)));
+      return {
+        r: clamp(f(5) * 255, 0, 255),
+        g: clamp(f(3) * 255, 0, 255),
+        b: clamp(f(1) * 255, 0, 255)
+      };
+    }
+
+    function rgbToHex(r, g, b) {
+      return [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('').toUpperCase();
+    }
+
+    /* ── Canvas picker state ── */
+    let pH = 0, pS = 0, pBrt = 100; // current HSB for picker cursor
+    let dragging = null; // 'sb' | 'hue' | null
+
+    /* ── Canvas draw ── */
+    function drawSB() {
+      const rect = sbCanvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      const cw = Math.round(rect.width * dpr);
+      const ch = Math.round(rect.height * dpr);
+      if (sbCanvas.width !== cw || sbCanvas.height !== ch) {
+        sbCanvas.width = cw; sbCanvas.height = ch;
+      }
+      const ctx = sbCanvas.getContext('2d');
+      const w = rect.width, h = rect.height;
+      ctx.save(); ctx.scale(dpr, dpr);
+
+      const base = hsbToRgb(pH, 100, 100);
+      const gH = ctx.createLinearGradient(0, 0, w, 0);
+      gH.addColorStop(0, '#fff');
+      gH.addColorStop(1, `rgb(${base.r},${base.g},${base.b})`);
+      ctx.fillStyle = gH; ctx.fillRect(0, 0, w, h);
+
+      const gV = ctx.createLinearGradient(0, 0, 0, h);
+      gV.addColorStop(0, 'rgba(0,0,0,0)');
+      gV.addColorStop(1, '#000');
+      ctx.fillStyle = gV; ctx.fillRect(0, 0, w, h);
+
+      const cx = (pS / 100) * w;
+      const cy = (1 - pBrt / 100) * h;
+      ctx.beginPath(); ctx.arc(cx, cy, 7, 0, Math.PI * 2);
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx, cy, 7, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 1; ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawHue() {
+      const rect = hueCanvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      const cw = Math.round(rect.width * dpr);
+      const ch = Math.round(rect.height * dpr);
+      if (hueCanvas.width !== cw || hueCanvas.height !== ch) {
+        hueCanvas.width = cw; hueCanvas.height = ch;
+      }
+      const ctx = hueCanvas.getContext('2d');
+      const w = rect.width, h = rect.height;
+      ctx.save(); ctx.scale(dpr, dpr);
+
+      const grad = ctx.createLinearGradient(0, 0, w, 0);
+      for (let i = 0; i <= 12; i++) {
+        const c = hsbToRgb((i / 12) * 360, 100, 100);
+        grad.addColorStop(i / 12, `rgb(${c.r},${c.g},${c.b})`);
+      }
+      const r = h / 2;
+      ctx.beginPath();
+      ctx.moveTo(r, 0); ctx.lineTo(w - r, 0);
+      ctx.arcTo(w, 0, w, r, r); ctx.lineTo(w, h - r);
+      ctx.arcTo(w, h, w - r, h, r); ctx.lineTo(r, h);
+      ctx.arcTo(0, h, 0, h - r, r); ctx.lineTo(0, r);
+      ctx.arcTo(0, 0, r, 0, r); ctx.closePath();
+      ctx.fillStyle = grad; ctx.fill();
+
+      const tx = clamp((pH / 360) * w, r, w - r);
+      ctx.beginPath(); ctx.arc(tx, h / 2, r - 1, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff'; ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.lineWidth = 1; ctx.stroke();
+      ctx.restore();
+    }
+
+    /* ── Core update ── */
+    function applyFromRGB(r, g, b, skipHSB = false) {
+      r = clamp(r, 0, 255); g = clamp(g, 0, 255); b = clamp(b, 0, 255);
+      const hex = rgbToHex(r, g, b);
+      const { h, s, b: brt } = rgbToHsb(r, g, b);
+
+      inHex.value = hex;
+      inR.value = r; inG.value = g; inB.value = b;
+      if (!skipHSB) { inH.value = h; inS.value = s; inBr.value = brt; }
+
+      // Update picker cursor state and redraw
+      if (!skipHSB) { pH = h; pS = s; pBrt = brt; }
+      if (inlinePicker.classList.contains('visible')) { drawSB(); drawHue(); }
+
+      previewScreen.style.backgroundColor = '#' + hex;
+      const isUnavailable = (s + brt) > 160 || brt <= 15;
+      const L_bg = relativeLuminance(r, g, b);
+      const contrast = L_bg > L_NAVY
+        ? (L_bg + 0.05) / (L_NAVY + 0.05)
+        : (L_NAVY + 0.05) / (L_bg + 0.05);
+      const isWhiteLogo = contrast < 4.5;
+      unavailableOverlay.style.display = isUnavailable ? 'block' : 'none';
+      previewLogo.src = isWhiteLogo ? 'logo-white.png' : 'logo-default.png';
+      document.querySelector('.preview-divider').style.background =
+        isWhiteLogo ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.25)';
+
+      if (isUnavailable) {
+        statusCard.className = 'status-card state-unavailable';
+        statusRow.innerHTML  =
+          '<span class="status-icon icon-warn">!</span>' +
+          '<span class="status-text state-unavailable">이 색상은 사용할 수 없습니다.</span>';
+        statusSub.innerHTML  = '&nbsp;';
+      } else {
+        statusCard.className = 'status-card state-available';
+        statusRow.innerHTML  =
+          '<span class="status-icon icon-ok">✓</span>' +
+          '<span class="status-text state-available">이 색상은 사용 가능합니다.</span>';
+        statusSub.textContent = isWhiteLogo
+          ? '캐시노트 로고는 흰색으로 표시됩니다. 자사 로고도 흰색으로 사용해주세요.'
+          : '캐시노트 로고는 기본 남색 로고로 표시됩니다.';
+      }
+    }
+
+    function applyFromHSB(h, s, b) {
+      h = clamp(h, 0, 360); s = clamp(s, 0, 100); b = clamp(b, 0, 100);
+      pH = h; pS = s; pBrt = b;
+      inH.value = h; inS.value = s; inBr.value = b;
+      const rgb = hsbToRgb(h, s, b);
+      applyFromRGB(rgb.r, rgb.g, rgb.b, true);
+    }
+
+    /* ── Preview click → toggle picker ── */
+    previewScreen.addEventListener('click', () => {
+      const visible = inlinePicker.classList.toggle('visible');
+      if (visible) { requestAnimationFrame(() => { drawSB(); drawHue(); }); }
+    });
+    previewScreen.style.cursor = 'pointer';
+
+    /* ── SB canvas interaction ── */
+    function sbCoordsToHSB(e) {
+      const rect = sbCanvas.getBoundingClientRect();
+      const x = clamp(e.clientX - rect.left, 0, rect.width);
+      const y = clamp(e.clientY - rect.top,  0, rect.height);
+      return {
+        s: Math.round((x / rect.width)  * 100),
+        b: Math.round((1 - y / rect.height) * 100)
+      };
+    }
+
+    sbCanvas.addEventListener('mousedown', (e) => {
+      dragging = 'sb';
+      const { s, b } = sbCoordsToHSB(e);
+      applyFromHSB(pH, s, b);
+    });
+
+    /* ── Hue slider interaction ── */
+    function hueCoordToH(e) {
+      const rect = hueCanvas.getBoundingClientRect();
+      const x = clamp(e.clientX - rect.left, 0, rect.width);
+      return Math.round((x / rect.width) * 360);
+    }
+
+    hueCanvas.addEventListener('mousedown', (e) => {
+      dragging = 'hue';
+      applyFromHSB(hueCoordToH(e), pS, pBrt);
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (dragging === 'sb') {
+        const { s, b } = sbCoordsToHSB(e);
+        applyFromHSB(pH, s, b);
+      } else if (dragging === 'hue') {
+        applyFromHSB(hueCoordToH(e), pS, pBrt);
+      }
+    });
+
+    window.addEventListener('mouseup', () => { dragging = null; });
+
+    /* ── Touch support ── */
+    function toMouse(e) { return { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY }; }
+    sbCanvas.addEventListener('touchstart',  (e) => { e.preventDefault(); dragging = 'sb';  const { s, b } = sbCoordsToHSB(toMouse(e)); applyFromHSB(pH, s, b); }, { passive: false });
+    hueCanvas.addEventListener('touchstart', (e) => { e.preventDefault(); dragging = 'hue'; applyFromHSB(hueCoordToH(toMouse(e)), pS, pBrt); }, { passive: false });
+    window.addEventListener('touchmove', (e) => {
+      if (!dragging) return; e.preventDefault();
+      const m = toMouse(e);
+      if (dragging === 'sb')  { const { s, b } = sbCoordsToHSB(m); applyFromHSB(pH, s, b); }
+      if (dragging === 'hue') applyFromHSB(hueCoordToH(m), pS, pBrt);
+    }, { passive: false });
+    window.addEventListener('touchend', () => { dragging = null; });
+
+    /* ── Input field events ── */
+    function makeRGBListener(el) {
+      el.addEventListener('change', () => {
+        el.value = clamp(parseInt(el.value) || 0, 0, 255);
+        applyFromRGB(+inR.value, +inG.value, +inB.value);
+      });
+    }
+    makeRGBListener(inR); makeRGBListener(inG); makeRGBListener(inB);
+
+    function makeHSBListener(el, max) {
+      el.addEventListener('change', () => {
+        el.value = clamp(parseInt(el.value) || 0, 0, max);
+        applyFromHSB(+inH.value, +inS.value, +inBr.value);
+      });
+    }
+    makeHSBListener(inH, 360); makeHSBListener(inS, 100); makeHSBListener(inBr, 100);
+
+    inHex.addEventListener('input', () => {
+      const raw = inHex.value.replace(/[^0-9a-fA-F]/g, '').toUpperCase();
+      inHex.value = raw;
+      if (raw.length === 6) {
+        applyFromRGB(parseInt(raw.slice(0,2),16), parseInt(raw.slice(2,4),16), parseInt(raw.slice(4,6),16));
+      }
+    });
+
+    inHex.addEventListener('paste', (e) => {
+      e.preventDefault();
+      let t = (e.clipboardData || window.clipboardData).getData('text');
+      t = t.replace(/^#/,'').replace(/[^0-9a-fA-F]/g,'').slice(0,6).toUpperCase();
+      inHex.value = t;
+      if (t.length === 6) applyFromRGB(parseInt(t.slice(0,2),16), parseInt(t.slice(2,4),16), parseInt(t.slice(4,6),16));
+    });
+  </script>
+</body>
+</html>
